@@ -20,7 +20,7 @@ def remove_service(index):
 st.title("🖥️ Client Website Requirement Form")
 st.write("Please fill out the details below to help us design your website.")
 
-with st.form("website_form"):
+with st.form("website_form", clear_on_submit=False):
     # --- Basic Info ---
     st.subheader("Basic Information")
     name = st.text_input("Full Name", placeholder="Enter your name")
@@ -53,11 +53,12 @@ with st.form("website_form"):
                 f"Description {i+1}", value=service["description"], key=f"service_desc_{i}"
             )
         with col3:
-            if st.button("🗑️", key=f"delete_service_{i}"):
+            if st.form_submit_button(f"🗑️ Delete {i+1}", use_container_width=True):
                 remove_service(i)
-                st.experimental_rerun()
 
-    st.button("➕ Add Service", on_click=add_service)
+    # Button to add a service
+    if st.form_submit_button("➕ Add Service"):
+        add_service()
 
     # --- Additional Info ---
     st.subheader("Additional Information")
@@ -66,7 +67,7 @@ with st.form("website_form"):
     notes = st.text_area("Additional Notes or Requirements")
 
     # --- Submit ---
-    submitted = st.form_submit_button("Submit")
+    submitted = st.form_submit_button("✅ Submit Form")
 
 if submitted:
     data = {
