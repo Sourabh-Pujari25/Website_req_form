@@ -1,96 +1,73 @@
 import streamlit as st
+import os
 import json
-from datetime import datetime
+from datetime import date
 
-st.set_page_config(page_title="Client Website Requirement Form", layout="centered")
+# Ensure images folder exists
+if not os.path.exists("images"):
+    os.makedirs("images")
 
-# ---- SESSION STATE INITIALIZATION ----
-if "services" not in st.session_state:
-    st.session_state.services = [{"name": "", "description": ""}]
+st.title("Client Website Requirements Form")
 
-# ---- FUNCTIONS ----
-def add_service():
-    st.session_state.services.append({"name": "", "description": ""})
+# Form
+with st.form("client_form", clear_on_submit=True):
+    name = st.text_input("What is your name?")
+    email = st.text_input("Email")
+    phone = st.text_input("Phone")
 
-def remove_service(index):
-    if len(st.session_state.services) > 1:
-        st.session_state.services.pop(index)
+    business_name = st.text_input("Business Name")
+    business_desc = st.text_area("What does your business do?")
+    num_products = st.number_input("How many products do you have?", min_value=0, step=1)
 
-# ---- TITLE ----
-st.title("🖥️ Client Website Requirement Form")
-st.write("Please fill out the details below to help us design your website.")
+    ref_websites = st.text_area("Do you have any reference websites? (paste links)")
+    domain = st.text_input("Do you already have a domain? If yes, type it below")
 
-with st.form("website_form", clear_on_submit=False):
-    # --- Basic Info ---
-    st.subheader("Basic Information")
-    name = st.text_input("Full Name", placeholder="Enter your name")
-    company = st.text_input("Company / Brand Name", placeholder="Enter company name")
-    email = st.text_input("Email Address")
-    contact = st.text_input("Contact Number")
+    deadline = st.date_input("Do you have a deadline for the website launch?", min_value=date.today())
+    budget = st.text_input("What is your estimated budget range?")
 
-    # --- Pages Required ---
-    st.subheader("Website Pages Required")
-    pages = st.multiselect(
-        "Select the pages you want on your website:",
-        [
-            "Home / Landing Page", "About Us", "Services", "Contact Us",
-            "Products / Shop Page", "Gallery / Portfolio", "Blog / News",
-            "Testimonials", "FAQ Page", "Careers / Job Openings"
-        ],
-    )
-    custom_page = st.text_input("Custom Page (if any)")
+    logo = st.file_uploader("Upload your business logo", type=["png", "jpg", "jpeg"])
 
-    # --- Services Section ---
-    st.subheader("Services Required")
-    for i, service in enumerate(st.session_state.services):
-        col1, col2, col3 = st.columns([3, 5, 1])
-        with col1:
-            st.session_state.services[i]["name"] = st.text_input(
-                f"Service Name {i+1}", value=service["name"], key=f"service_name_{i}"
-            )
-        with col2:
-            st.session_state.services[i]["description"] = st.text_area(
-                f"Description {i+1}", value=service["description"], key=f"service_desc_{i}"
-            )
-        with col3:
-            if st.form_submit_button(f"🗑️ Delete {i+1}", use_container_width=True):
-                remove_service(i)
-
-    # Button to add a service
-    if st.form_submit_button("➕ Add Service"):
-        add_service()
-
-    # --- Additional Info ---
-    st.subheader("Additional Information")
-    color_theme = st.text_input("Preferred Color Theme / Branding Guidelines")
-    inspiration = st.text_area("Any Websites You Like for Inspiration")
-    notes = st.text_area("Additional Notes or Requirements")
-
-    # --- Submit ---
-    submitted = st.form_submit_button("✅ Submit Form")
+    submitted = st.form_submit_button("Submit")
 
 if submitted:
-    data = {
-        "name": name,
-        "company": company,
-        "email": email,
-        "contact": contact,
-        "pages": pages,
-        "custom_page": custom_page,
-        "services": st.session_state.services,
-        "color_theme": color_theme,
-        "inspiration": inspiration,
-        "notes": notes,
-        "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
+    try:
+        if not name or not email or not phone:
+            st.error("Name, Email, and Phone are required fields.")
+        else:
+            # Save data to JSON
+            client_data = {
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "business_name": business_name,
+                "business_desc": business_desc,
+                "num_products": int(num_products),
+                "ref_websites": ref_websites,
+                "domain": domain,
+                "deadline": str(deadline),
+                "budget": budget,
+                "logo_file": logo.name if logo else None
+            }
 
-    # Save to JSON
-    filename = f"client_website_requirements_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    with open(filename, "w") as f:
-        json.dump(data, f, indent=4)
+            # Save JSON
+            json_filename = f"{name.replace(' ', '_')}_data.json"
+            with open(json_filename, "w") as f:
+                json.dump(client_data, f, indent=4)
 
-    st.success(f"Form submitted successfully! Data saved to {filename}")
+            # Save logo image
+            image_path = None
+            if logo:
+                image_path = os.path.join("images", logo.name)
+                with open(image_path, "wb") as f:
+                    f.write(logo.getbuffer())
 
-    # Show in Expander
-    with st.expander("📂 View Submitted Data"):
-        st.json(data)
+            st.success("Form submitted successfully!")
+
+            # Show data in expander
+            with st.expander("Submitted Data"):
+                st.json(client_data)
+                if image_path:
+                    st.image(image_path, caption="Uploaded Business Logo", use_container_width=True)
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
